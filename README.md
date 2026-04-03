@@ -48,20 +48,29 @@ ue4ss/
       Scripts/
         main.lua
       retro-rewind-companion.exe
-      run-companion.bat
 ```
 
 ## Usage
 
 ### Start the Companion App
 
-Run `run-companion.bat` to get prompted for the following information:
+Double-click on the `retro-rewind-companion.exe` application. If thi is your first time running this app, you may be prompted to exit and edit the configuration file.
 
-- **Twitch Channel** (required): Your Twitch channel
+If this occurs, the configuration file is located within the same directory, as `companion.config.json`, and will look similar to the following:
 
-- **Join Command** (required): The chat command viewers will use (e.g., `!join`) to express intent to be an in-game character
+```json
+{
+  "joinCommand": "!join",
+  "popQueueRandomly": false,
+  "twitchChannel": "ReservedKeyword"
+}
+```
 
-![Bun Companion App](./images/companion-app.png)
+* `joinCommand`: The command (e.g., "!join") that someone in chat must type to get entered into the queue.
+* `popQueueRandomly`: If true, a queue pop command will randomly select a chatter; otherwise, it will follow FIFO.
+* `twitchChannel`: Your Twitch channel username (e.g., "ReservedKeyword").
+
+![Bun Companion App](./images/companion-running.png)
 
 ### Launch the Game
 
