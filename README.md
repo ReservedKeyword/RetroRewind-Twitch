@@ -46,6 +46,7 @@ ue4ss/
   Mods/
     TwitchIntegrationMod/
       Scripts/
+        dkjson.lua
         main.lua
       retro-rewind-companion.exe
 ```
