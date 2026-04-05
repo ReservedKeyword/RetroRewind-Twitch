@@ -63,7 +63,10 @@ export async function loadConfiguration(): Promise<Configuration> {
 
   const rawContents = await configFile.json();
   const mergedContents = { ...DEFAULT_CONFIGURATION, ...rawContents };
-  const newPropertyKeys = Object.keys(DEFAULT_CONFIGURATION).filter((key) => !(key in rawContents));
+
+  const newPropertyKeys = Object.keys(DEFAULT_CONFIGURATION).filter(
+    (key) => key !== "joinCommand" && !(key in rawContents)
+  );
 
   if (newPropertyKeys.length > 0) {
     await Bun.write(CONFIG_PATH, JSON.stringify(mergedContents, null, 2) + EOL);
