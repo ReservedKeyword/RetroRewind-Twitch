@@ -55,7 +55,7 @@ ue4ss/
 
 ### Start the Companion App
 
-Double-click on the `retro-rewind-companion.exe` application. If this is your first time running this app, you may be prompted to exit and edit the configuration file.
+Double-click on the `retro-rewind-companion.exe` application. If this is your first time running this app, or if new configuration option(s) have been added, you may be prompted to exit and edit the configuration file.
 
 If this occurs, the configuration file is located within the same directory as `companion.config.json`, and will look similar to the following:
 
