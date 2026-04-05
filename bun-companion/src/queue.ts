@@ -6,12 +6,16 @@ export interface CreateAndStartPipeServerOptions {
   shouldPopQueueRandomly: boolean;
 }
 
-const COMMAND_COUNT = "COUNT";
+export interface QueueEntry {
+  displayName: string;
+  showNameAboveHead: boolean;
+}
+
 const COMMAND_POP = "POP";
 const PIPE_PATH = "\\\\.\\pipe\\RetroRewindCompanion";
 
 const logger = baseLogger.getSubLogger({ name: "Queue" });
-export const namesQueue: string[] = [];
+export const namesQueue: QueueEntry[] = [];
 
 export function createAndStartPipeServer({ shouldPopQueueRandomly }: CreateAndStartPipeServerOptions) {
   logger.info("Should Pop Randomly? ", shouldPopQueueRandomly);
@@ -20,16 +24,15 @@ export function createAndStartPipeServer({ shouldPopQueueRandomly }: CreateAndSt
     connection.on("data", (data) => {
       const command = data.toString().trim();
 
-      if (command === COMMAND_COUNT) {
-        connection.write(namesQueue.length.toString() + "\n");
-      } else if (command === COMMAND_POP) {
-        const chatterName = popName(shouldPopQueueRandomly);
+      if (command === COMMAND_POP) {
+        const queueEntry = popQueueEntry(shouldPopQueueRandomly);
 
-        if (chatterName) {
-          logger.info(`Sent "${chatterName}" to game (${namesQueue.length} remaining)`);
+        if (queueEntry) {
+          logger.info(`Sent "${queueEntry.displayName}" to game (${namesQueue.length} remaining)`);
+          connection.write(JSON.stringify(queueEntry) + "\n");
+        } else {
+          connection.write("\n");
         }
-
-        connection.write(chatterName + "\n");
       } else {
         logger.warn(`Unknown pipe command received: ${command}, skipping...`);
       }
@@ -50,9 +53,9 @@ export function createAndStartPipeServer({ shouldPopQueueRandomly }: CreateAndSt
   });
 }
 
-function popName(shouldPopQueueRandomly: boolean) {
+function popQueueEntry(shouldPopQueueRandomly: boolean): QueueEntry | null | undefined {
   if (namesQueue.length === 0) {
-    return "";
+    return null;
   }
 
   if (shouldPopQueueRandomly) {

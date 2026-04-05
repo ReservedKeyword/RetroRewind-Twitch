@@ -7,6 +7,7 @@ const {
   joinCommand,
   maxQueueSize,
   popQueueRandomly: shouldPopQueueRandomly,
+  showDisplayNameAboveHead,
   twitchChannel
 } = await loadConfiguration();
 
@@ -33,7 +34,7 @@ chatClient.onDisconnect((manually) => {
 });
 
 chatClient.onMessage(async (_channel, _user, messageText, chatMessage) => {
-  if (joinCommand && messageText.trim().toLowerCase() !== joinCommand) {
+  if (joinCommand && !messageText.trim().toLowerCase().includes(joinCommand)) {
     return;
   }
 
@@ -43,10 +44,14 @@ chatClient.onMessage(async (_channel, _user, messageText, chatMessage) => {
     return;
   }
 
-  if (namesQueue.includes(chatterName)) {
+  if (namesQueue.some(({ displayName }) => chatterName === displayName)) {
     return;
   }
 
-  namesQueue.push(chatterName);
+  namesQueue.push({
+    displayName: chatterName,
+    showNameAboveHead: showDisplayNameAboveHead
+  });
+
   logger.info(`${chatterName} joined queue (${namesQueue.length} waiting)`);
 });

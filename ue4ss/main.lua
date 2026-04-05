@@ -1,5 +1,6 @@
-local UEHelpers = require("UEHelpers")
+local json = require("dkjson")
 local KismetText = nil
+local UEHelpers = require("UEHelpers")
 
 local flyerRecipients = {}
 local hookRegistered = false
@@ -21,14 +22,21 @@ local function PopQueue()
     osPipe:write("POP\n")
     osPipe:flush()
 
-    local chatterName = osPipe:read("*l")
+    local rawResponse = osPipe:read("*l")
     osPipe:close()
 
-    if not chatterName or chatterName == "" then
+    if not rawResponse or rawResponse == "" then
         return nil, "QueueEmpty"
     end
 
-    return chatterName
+    local queueEntry, _, err = json.decode(rawResponse)
+
+    if err then
+        Log(string.format("Failed to parse queue response: %s", err))
+        return nil, "ParseError"
+    end
+
+    return queueEntry
 end
 
 NotifyOnNewObject(
@@ -44,13 +52,21 @@ NotifyOnNewObject(
                     local ai = context:get()
 
                     if ai['Type of AI'] == 1 then
-                        local chatterName, errorReason = PopQueue()
+                        local queueEntry, errorReason = PopQueue()
 
-                        if chatterName then
+                        if queueEntry then
+                            local chatterName = queueEntry.displayName
                             local membershipNum = Client_Membership_Number:get()
+                            local showNameAboveHead = queueEntry.showNameAboveHead
 
                             Client_Name:set(KismetText:Conv_StringToText(chatterName))
                             Client_Membership_Number:set(membershipNum)
+
+                            if showNameAboveHead then
+                                local titleComp = ai['Title_Name']
+                                titleComp.bHiddenInGame = false
+                                titleComp:SetText(KismetText:Conv_StringToText(chatterName))
+                            end
 
                             Log(string.format("Customer named: %s (membership: %s)", chatterName, tostring(membershipNum)))
                             pipeWarned = false
@@ -91,10 +107,20 @@ NotifyOnNewObject(
                         return
                     end
 
-                    local chatterName, errorReason = PopQueue()
+                    local queueEntry, errorReason = PopQueue()
 
-                    if chatterName then
+                    if queueEntry then
+                        local chatterName = queueEntry.displayName
+                        local showNameAboveHead = queueEntry.showNameAboveHead
+
                         ai['Client Name'] = KismetText:Conv_StringToText(chatterName)
+
+                        if showNameAboveHead then
+                            local titleComp = ai['Title_Name']
+                            titleComp.bHiddenInGame = false
+                            titleComp:SetText(KismetText:Conv_StringToText(chatterName))
+                        end
+
                         Log(string.format("Flyer convert named: %s", chatterName))
                     elseif errorReason == "PipeUnavailable" and not pipeWarned then
                         Log("Companion app is not running, customers will use default names.")

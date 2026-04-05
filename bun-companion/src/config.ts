@@ -7,6 +7,7 @@ export interface Configuration {
   joinCommand?: string | undefined;
   maxQueueSize: number;
   popQueueRandomly: boolean;
+  showDisplayNameAboveHead: boolean;
   twitchChannel: string;
 }
 
@@ -28,12 +29,15 @@ const configSchema: JSONSchemaType<Configuration> = {
     popQueueRandomly: {
       type: "boolean"
     },
+    showDisplayNameAboveHead: {
+      type: "boolean"
+    },
     twitchChannel: {
       type: "string",
       minLength: 1
     }
   },
-  required: ["maxQueueSize", "popQueueRandomly", "twitchChannel"],
+  required: ["maxQueueSize", "popQueueRandomly", "showDisplayNameAboveHead", "twitchChannel"],
   additionalProperties: false
 };
 
@@ -44,6 +48,7 @@ const DEFAULT_CONFIGURATION: Configuration = {
   joinCommand: "!join",
   maxQueueSize: 250,
   popQueueRandomly: false,
+  showDisplayNameAboveHead: true,
   twitchChannel: "ReservedKeyword"
 };
 
@@ -62,7 +67,9 @@ export async function loadConfiguration(): Promise<Configuration> {
 
   if (newPropertyKeys.length > 0) {
     await Bun.write(CONFIG_PATH, JSON.stringify(mergedContents, null, 2) + EOL);
-    logger.info(`Added new config option(s) to ${CONFIG_PATH}: ${newPropertyKeys.join(", ")}`);
+    logger.info(`New config option(s) were added: ${newPropertyKeys.join(", ")}`);
+    logger.info("Process will exit now. Edit and restart companion for changes to take effect.");
+    return await exitWithPause(0);
   }
 
   if (!validateFn(rawContents)) {
