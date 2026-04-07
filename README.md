@@ -1,6 +1,6 @@
 # Retro Rewind - Twitch Clients
 
-This project is a Bun-based companion app for a UE4SS mod for the game, Retro Rewind, where Twitch chatters can become in-game customers.
+This project is a Bun-based companion app for a UE4SS mod for the game, Retro Rewind, where Twitch chatters can become in-game customers and employees/staff members.
 
 ## How It Works
 
@@ -61,6 +61,7 @@ If this occurs, the configuration file is located within the same directory as `
 
 ```json
 {
+  "allowModeratorsToClearQueue": true,
   "joinCommand": "!join",
   "keepChattersInQueue": true,
   "maxQueueSize": 250,
@@ -69,6 +70,8 @@ If this occurs, the configuration file is located within the same directory as `
   "twitchChannel": "ReservedKeyword"
 }
 ```
+
+* `allowModeratorsToClearQueue`: If true, when a moderator (or broadcaster) sends the chat message `!clearqueue` in Twitch chat, the queue will be cleared in-place, allowing new chatters to fill the queue without restarting the companion or the game.
 
 * `joinCommand`: The command (e.g., "!join") that someone in chat must type to get entered into the queue.
 
