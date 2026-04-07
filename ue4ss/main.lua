@@ -4,7 +4,9 @@ local UEHelpers = require("UEHelpers")
 
 local flyerRecipients = {}
 local hookRegistered = false
+local pendingEmployeeNames = {}
 local pipeWarned = false
+local updatingEmployeeSticker = false
 
 local PIPE_PATH = "\\\\.\\pipe\\RetroRewindCompanion"
 
@@ -56,24 +58,82 @@ NotifyOnNewObject(
 
                         if queueEntry then
                             local chatterName = queueEntry.displayName
-                            local membershipNum = Client_Membership_Number:get()
+                            local membershipNumber = Client_Membership_Number:get()
                             local showNameAboveHead = queueEntry.showNameAboveHead
 
+                            Client_Membership_Number:set(membershipNumber)
                             Client_Name:set(KismetText:Conv_StringToText(chatterName))
-                            Client_Membership_Number:set(membershipNum)
 
                             if showNameAboveHead then
-                                local titleComp = ai['Title_Name']
-                                titleComp.bHiddenInGame = false
-                                titleComp:SetText(KismetText:Conv_StringToText(chatterName))
+                                local titleComponent = ai['Title_Name']
+                                titleComponent.bHiddenInGame = false
+                                titleComponent:SetText(KismetText:Conv_StringToText(chatterName))
                             end
 
-                            Log(string.format("Customer named: %s (membership: %s)", chatterName, tostring(membershipNum)))
+                            Log(string.format("Customer named: %s (membership: %s)", chatterName,
+                                tostring(membershipNumber)))
                             pipeWarned = false
                         elseif errorReason == "PipeUnavailable" and not pipeWarned then
                             Log("Companion app is not running, customers will use default names.")
                             pipeWarned = true
                         end
+                    end
+                end
+            )
+
+            RegisterHook(
+                "/Game/VideoStore/core/ai/pawn/AI_Employee_Character.AI_Employee_Character_C:Return Random Name based on Genre",
+                function(context, Genre, Client_Name, Client_Membership_Number)
+                    local ai = context:get()
+                    local aiAddress = tostring(ai:GetAddress())
+                    local queueEntry, errorReason = PopQueue()
+
+                    if queueEntry then
+                        local chatterName = queueEntry.displayName
+                        local membershipNumber = Client_Membership_Number:get()
+                        local showNameAboveHead = queueEntry.showNameAboveHead
+
+                        Client_Membership_Number:set(membershipNumber)
+                        Client_Name:set(KismetText:Conv_StringToText(chatterName))
+
+                        if showNameAboveHead then
+                            local titleComponent = ai['Title_Name']
+                            titleComponent.bHiddenInGame = false
+                            titleComponent:SetText(KismetText:Conv_StringToText(chatterName))
+                        end
+
+                        pendingEmployeeNames[aiAddress] = chatterName
+                        Log(string.format("Employee named: %s. Waiting for name badge to update...", chatterName))
+                        pipeWarned = false
+                    elseif errorReason == "PipeUnavailable" and not pipeWarned then
+                        Log("Companion app is not running, employees will use default names.")
+                        pipeWarned = true
+                    end
+                end
+            )
+
+            RegisterHook("/Game/VideoStore/core/ai/pawn/staff/Staff_NameSticker.Staff_NameSticker_C:Update Staff Name",
+                function(context, Staff_Name)
+                    if updatingEmployeeSticker then
+                        return
+                    end
+
+                    local stickerComponent = context:get()
+                    local ownerComponent = stickerComponent:GetAttachParentActor()
+
+                    if not ownerComponent or not ownerComponent:IsValid() then
+                        return
+                    end
+
+                    local ownerAddress = tostring(ownerComponent:GetAddress())
+                    local chatterName = pendingEmployeeNames[ownerAddress]
+
+                    if chatterName then
+                        updatingEmployeeSticker = true
+                        stickerComponent['Update Staff Name'](stickerComponent, FName(chatterName))
+                        Log(string.format("Name badge updated for: %s", chatterName))
+                        pendingEmployeeNames[ownerAddress] = nil
+                        updatingEmployeeSticker = false
                     end
                 end
             )
