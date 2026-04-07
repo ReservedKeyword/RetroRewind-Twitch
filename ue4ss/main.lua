@@ -119,13 +119,13 @@ NotifyOnNewObject(
                     end
 
                     local stickerComponent = context:get()
-                    local ownerComponent = stickerComponent:GetAttachParentActor()
+                    local ownerActor = stickerComponent:GetAttachParentActor()
 
-                    if not ownerComponent or not ownerComponent:IsValid() then
+                    if not ownerActor or not ownerActor:IsValid() then
                         return
                     end
 
-                    local ownerAddress = tostring(ownerComponent:GetAddress())
+                    local ownerAddress = tostring(ownerActor:GetAddress())
                     local chatterName = pendingEmployeeNames[ownerAddress]
 
                     if chatterName then
