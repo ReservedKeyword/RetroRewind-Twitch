@@ -2,6 +2,7 @@ local json = require("dkjson")
 local KismetText = nil
 local UEHelpers = require("UEHelpers")
 
+local activeEmployeeNames = {}
 local flyerRecipients = {}
 local hookRegistered = false
 local pendingEmployeeNames = {}
@@ -41,6 +42,26 @@ local function PopQueue()
     return queueEntry
 end
 
+local function PopQueueExcluding(excludeSet)
+    local maximumPops = 5
+
+    for _ = 1, maximumPops do
+        local queueEntry, errorReason = PopQueue()
+
+        if not queueEntry then
+            return nil, errorReason
+        end
+
+        if not excludeSet[queueEntry.displayName:lower()] then
+            return queueEntry
+        end
+
+        Log(string.format("Skipped %s. They're currently an active employee.", queueEntry.displayName))
+    end
+
+    return nil, "QueueExhausted"
+end
+
 NotifyOnNewObject(
     "/Game/VideoStore/core/ai/pawn/AI_Base_Character.AI_Base_Character_C",
     function()
@@ -54,7 +75,7 @@ NotifyOnNewObject(
                     local ai = context:get()
 
                     if ai['Type of AI'] == 1 then
-                        local queueEntry, errorReason = PopQueue()
+                        local queueEntry, errorReason = PopQueueExcluding(activeEmployeeNames)
 
                         if queueEntry then
                             local chatterName = queueEntry.displayName
@@ -102,6 +123,7 @@ NotifyOnNewObject(
                             titleComponent:SetText(KismetText:Conv_StringToText(chatterName))
                         end
 
+                        activeEmployeeNames[chatterName:lower()] = true
                         pendingEmployeeNames[aiAddress] = chatterName
                         Log(string.format("Employee named: %s. Waiting for name badge to update...", chatterName))
                         pipeWarned = false
@@ -138,6 +160,13 @@ NotifyOnNewObject(
                 end
             )
 
+            RegisterHook("/Game/VideoStore/core/widget/dayUI/UI_EndOfTheDay.UI_EndOfTheDay_C:Go to Next day event",
+                function()
+                    activeEmployeeNames = {}
+                    pendingEmployeeNames = {}
+                    Log("Day transition. Cleared active employee names")
+                end)
+
             RegisterHook(
                 "/Game/VideoStore/asset/prop/Flyers/Flyer.Flyer_C:Give the Object",
                 function(context, Object_to_store, ref_to_Player, AI)
@@ -167,7 +196,7 @@ NotifyOnNewObject(
                         return
                     end
 
-                    local queueEntry, errorReason = PopQueue()
+                    local queueEntry, errorReason = PopQueueExcluding(activeEmployeeNames)
 
                     if queueEntry then
                         local chatterName = queueEntry.displayName
@@ -185,6 +214,8 @@ NotifyOnNewObject(
                     elseif errorReason == "PipeUnavailable" and not pipeWarned then
                         Log("Companion app is not running, customers will use default names.")
                         pipeWarned = true
+                    elseif errorReason == "QueueExhausted" then
+                        Log("Passerby accepted but all queued chatters are active employees, using default name.")
                     else
                         Log("Passerby accepted but the queue is empty, using default name.")
                     end
